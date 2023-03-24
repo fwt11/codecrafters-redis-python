@@ -1,5 +1,6 @@
 # Uncomment this to pass the first stage
 import socket 
+import sys
 
 
 def main():
@@ -27,9 +28,11 @@ def main():
 
 def handle_client(conn):
     try:
-        buff, addr = conn.recvfrom(32)
+        buff= conn.recv(4096)
+        buff = buff.split(b"\r\n")
+        if buff[2] == b'ECHO' or buff[2] == b'echo':
+            conn.sendall(buff[3] + b"\r\n" + buff[4] + b"\r\n")
         if not buff:
-            print(f"no more data, close client from {addr}")
             return
         conn.sendall(b'+PONG\r\n')
     except BlockingIOError as e:
