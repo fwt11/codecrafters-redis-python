@@ -29,16 +29,15 @@ def main():
 def handle_client(conn):
     try:
         buff= conn.recv(4096)
+        if not buff:
+            return
         buff = buff.split(b"\r\n")
         if buff[2] == b'ECHO' or buff[2] == b'echo':
             conn.sendall(buff[3] + b"\r\n" + buff[4] + b"\r\n")
-        if not buff:
-            return
+
         conn.sendall(b'+PONG\r\n')
     except BlockingIOError as e:
         return
-
-
 
 
 
