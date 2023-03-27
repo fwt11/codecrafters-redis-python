@@ -55,14 +55,14 @@ def handle_client(conn):
 
         command = buff[2].lower()
         print(buff)
-        print(command)
+        #print(command)
 
         if command == b'echo':
             conn.sendall(buff[3] + b"\r\n" + buff[4] + b"\r\n")
         elif command == b'set':
             value = buff[6]
             if len(buff) > 8 and buff[8].lower() == b"px":
-                value  = (value, int(time.time()) + int(buff[10]))
+                value  = (value, int(time.time() * 1000) + int(buff[10]))
                 conn.sendall(b'+OK\r\n')
             elif result := storage.get(buff[4]):
                 reply_bulk_string(conn, result)
@@ -75,7 +75,7 @@ def handle_client(conn):
             print('value: ', value)
             if value:
                 if isinstance(value, tuple):
-                    if int(time.time()) > value[1]:
+                    if int(time.time() * 1000) > value[1]:
                         del storage[buff[4]]
                         reply_null_bulk_string(conn)
                         return
