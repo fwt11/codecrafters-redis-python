@@ -1,6 +1,7 @@
 # Uncomment this to pass the first stage
 import socket 
 import sys
+import time
 
 storage = dict()
 
@@ -11,6 +12,10 @@ def reply_simple_string(conn, r):
 
 def reply_bulk_string(conn, r):
     conn.sendall(b"$" + str(len(r)).encode() + b'\r\n' + r + b'\r\n')
+
+
+def reply_null_bulk_string(conn):
+    conn.sendall(b"$-1\r\n")
 
 
 def main():
@@ -35,32 +40,53 @@ def main():
 
         for client in clients:
             handle_client(client)
+        pass
+
+
     
 
 def handle_client(conn):
     global storage
     try:
-        buff= conn.recv(4096)
+        buff = conn.recv(4096)
         if not buff:
             return
         buff = buff.split(b"\r\n")
 
         command = buff[2].lower()
+        print(buff)
         print(command)
 
         if command == b'echo':
             conn.sendall(buff[3] + b"\r\n" + buff[4] + b"\r\n")
         elif command == b'set':
-            if result := storage.get(buff[4]):
-                storage[buff[4]] = buff[6]
-                print(result)
+            value = buff[6]
+            if buff[8].lower() == b"px":
+                value  = (value, int(time.time()) + int(buff[10]))
+                conn.sendall(b'+OK\r\n')
+            elif result := storage.get(buff[4]):
                 reply_bulk_string(conn, result)
             else:
-                storage[buff[4]] = buff[6]
                 conn.sendall(b'+OK\r\n')
+            storage[buff[4]] = value
         elif command == b'get':
-            reply_bulk_string(conn, storage[buff[4]])
+            print(storage)
+            value = storage.get(buff[4])
+            print('value: ', value)
+            if value:
+                if isinstance(value, tuple):
+                    if int(time.time()) > value[1]:
+                        del storage[buff[4]]
+                        reply_null_bulk_string(conn)
+                        return
+                    else:
+                        value = value[0]
+                reply_bulk_string(conn, value)
+            else:
+                reply_null_bulk_string(conn)     
         elif command == b'ping':            
+            reply_simple_string(conn, b'PONG')
+        else:
             reply_simple_string(conn, b'PONG')
     except BlockingIOError as e:
         return
