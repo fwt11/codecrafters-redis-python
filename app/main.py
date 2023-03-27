@@ -61,7 +61,7 @@ def handle_client(conn):
             conn.sendall(buff[3] + b"\r\n" + buff[4] + b"\r\n")
         elif command == b'set':
             value = buff[6]
-            if buff[8].lower() == b"px":
+            if len(buff) > 8 and buff[8].lower() == b"px":
                 value  = (value, int(time.time()) + int(buff[10]))
                 conn.sendall(b'+OK\r\n')
             elif result := storage.get(buff[4]):
